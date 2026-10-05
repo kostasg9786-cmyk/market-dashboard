@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate Macro Investing Dashboard</title>
+    <title>Ultimate Live Macro Dashboard (€)</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -15,31 +15,30 @@
             --warning: #fbbf24;
             --danger: #f87171;
         }
-        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
+        body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 20px; }
         .container { max-width: 1400px; margin: 0 auto; }
-        header { background: linear-gradient(135deg, #1e40af, #0369a1); padding: 30px; border-radius: 12px; margin-bottom: 25px; text-align: center; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3); }
-        header h1 { margin: 0; font-size: 2.2rem; letter-spacing: -0.5px; }
-        header p { margin: 10px 0 0 0; color: #bae6fd; font-size: 1.1rem; }
+        header { background: linear-gradient(135deg, #1e40af, #0369a1); padding: 30px; border-radius: 12px; margin-bottom: 25px; text-align: center; }
+        header h1 { margin: 0; font-size: 2.2rem; }
+        header p { margin: 10px 0 0 0; color: #bae6fd; }
+        .fx-bar { text-align: center; margin-bottom: 20px; font-size: 1.1rem; color: var(--success); font-weight: bold; }
         .actions { margin-bottom: 25px; display: flex; gap: 15px; justify-content: center; }
-        .btn { background-color: var(--primary); color: #0f172a; border: none; padding: 12px 24px; font-size: 1rem; border-radius: 6px; cursor: pointer; font-weight: bold; transition: all 0.2s; }
-        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn { background-color: var(--primary); color: #0f172a; border: none; padding: 12px 24px; font-size: 1rem; border-radius: 6px; cursor: pointer; font-weight: bold; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 25px; }
-        .card { background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); border-left: 6px solid var(--primary); transition: transform 0.2s; position: relative; }
+        .card { background: var(--card-bg); padding: 25px; border-radius: 12px; border-left: 6px solid var(--primary); transition: transform 0.2s; }
         .card:hover { transform: translateY(-4px); }
         .card.score-high { border-left-color: var(--success); }
         .card.score-mid { border-left-color: var(--warning); }
         .card.score-low { border-left-color: var(--danger); }
         h3 { margin-top: 0; font-size: 1.4rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 10px; }
-        .macro-score { font-size: 1.5rem; font-weight: bold; padding: 5px 10px; border-radius: 6px; background: rgba(255,255,255,0.05); }
+        .macro-score { font-size: 1.5rem; font-weight: bold; }
         .score-high .macro-score { color: var(--success); }
         .score-mid .macro-score { color: var(--warning); }
         .score-low .macro-score { color: var(--danger); }
-        .section-title { font-size: 0.85rem; text-transform: uppercase; color: var(--primary); font-weight: bold; margin: 15px 0 8px 0; letter-spacing: 0.5px; }
+        .section-title { font-size: 0.85rem; text-transform: uppercase; color: var(--primary); font-weight: bold; margin: 15px 0 8px 0; }
         .metric { display: flex; justify-content: space-between; margin: 6px 0; font-size: 1.05rem; }
         .metric label { color: var(--text-muted); }
         .metric span { font-weight: 600; }
-        .live-status { margin-top: 20px; padding-top: 12px; border-top: 1px dashed #334155; font-size: 0.9rem; color: var(--text-muted); }
-        .badge { font-size: 0.8rem; padding: 3px 8px; border-radius: 4px; font-weight: bold; margin-left: 8px; }
+        .loading-text { color: var(--text-muted); font-style: italic; }
     </style>
 </head>
 <body>
@@ -47,11 +46,13 @@
 <div class="container">
     <header>
         <h1>Global Macro Investing Dashboard 🌐</h1>
-        <p>Ολιστική Ανάλυση: Αποτιμήσεις, Νομισματική Πολιτική & Live Momentum</p>
+        <p>Ζωντανά Δεδομένα & Αποτιμήσεις σε Ευρώ (€)</p>
     </header>
 
+    <div class="fx-bar" id="fx-rate">💶 Live Ισοτιμία EUR/USD: Φόρτωση...</div>
+
     <div class="actions">
-        <button class="btn" onclick="fetchLiveMarketData()">🔄 Ενημέρωση Live Δεδομένων</button>
+        <button class="btn" onclick="loadAllMacroData()">🔄 Χειροκίνητη Live Ανανέωση</button>
     </div>
 
     <div class="grid" id="macro-grid">
@@ -60,39 +61,32 @@
 </div>
 
 <script>
-// Ολοκληρωμένη Macro Βάση Δεδομένων (Τελευταία στοιχεία 2026)
+// Βάλτε το API Key σας από την καρτέλα "API Keys" του FMP ανάμεσα στα εισαγωγικά
+const FMP_API_KEY = "mrTrdvdWF0xSlBp6EOCku574T7SI5GNd";
+
+let usdToEurRate = 0.91; // Αρχικό fallback
+
 const macroMarkets = [
-    { name: "Ελλάδα", ticker: "GREK", pe: 11.60, shillerPe: 12.10, gdp: 1.8, rate: 3.25, yield: 3.80, icon: "🇬🇷", region: "Ευρώπη" },
-    { name: "Φιλιππίνες", ticker: "EPHE", pe: 7.54, shillerPe: 9.20, gdp: 3.3, rate: 5.75, yield: 2.90, icon: "🇵🇭", region: "Αναδυόμενες Ασία" },
-    { name: "Ηνωμένες Πολιτείες (ΗΠΑ)", ticker: "SPY", pe: 23.85, shillerPe: 31.40, gdp: 2.3, rate: 4.50, yield: 1.35, icon: "🇺🇸", region: "Αναπτυγμένες" },
-    { name: "Αναδυόμενες Αγορές", ticker: "EEM", pe: 13.99, shillerPe: 14.50, gdp: 3.9, rate: 5.00, yield: 2.65, icon: "🌐", region: "Παγκόσμιο" },
-    { name: "Γερμανία", ticker: "EWG", pe: 17.47, shillerPe: 16.80, gdp: 0.7, rate: 3.25, yield: 2.80, icon: "🇩🇪", region: "Ευρώπη" },
-    { name: "Ηνωμένο Βασίλειο", ticker: "EWU", pe: 16.37, shillerPe: 15.20, gdp: 1.0, rate: 4.75, yield: 3.95, icon: "🇬🇧", region: "Ευρώπη" },
-    { name: "Ιαπωνία", ticker: "EWJ", pe: 18.68, shillerPe: 22.10, gdp: 0.6, rate: 0.25, yield: 1.80, icon: "🇯🇵", region: "Αναπτυγμένες Ασία" },
-    { name: "Κίνα", ticker: "MCHI", pe: 10.80, shillerPe: 11.30, gdp: 4.1, rate: 3.10, yield: 2.40, icon: "🇨🇳", region: "Αναδυόμενες Ασία" }
+    { name: "Ελλάδα", ticker: "GREK", countryCode: "GR", pe: 11.60, shillerPe: 12.10, gdp: 1.8, rate: 3.25, yield: 3.80, icon: "🇬🇷", region: "Ευρώπη" },
+    { name: "Φιλιππίνες", ticker: "EPHE", countryCode: "PH", pe: 7.54, shillerPe: 9.20, gdp: 3.3, rate: 5.75, yield: 2.90, icon: "🇵🇭", region: "Αναδυόμενες Ασία" },
+    { name: "Ηνωμένες Πολιτείες (ΗΠΑ)", ticker: "SPY", countryCode: "US", pe: 23.85, shillerPe: 31.40, gdp: 2.3, rate: 4.50, yield: 1.35, icon: "🇺🇸", region: "Αναπτυγμένες" },
+    { name: "Γερμανία", ticker: "EWG", countryCode: "DE", pe: 17.47, shillerPe: 16.80, gdp: 0.7, rate: 3.25, yield: 2.80, icon: "🇩🇪", region: "Ευρώπη" },
+    { name: "Ηνωμένο Βασίλειο", ticker: "EWU", countryCode: "GB", pe: 16.37, shillerPe: 15.20, gdp: 1.0, rate: 4.75, yield: 3.95, icon: "🇬🇧", region: "Ευρώπη" },
+    { name: "Ιαπωνία", ticker: "EWJ", countryCode: "JP", pe: 18.68, shillerPe: 22.10, gdp: 0.6, rate: 0.25, yield: 1.80, icon: "🇯🇵", region: "Αναπτυγμένες Ασία" }
 ];
 
-// Αλγόριθμος Υπολογισμού Επενδυτικής Ελκυστικότητας (Macro Score 1-10)
 function calculateMacroScore(market) {
-    let score = 5; // Βάση
-    
-    // Κριτήριο 1: Αποτίμηση P/E
-    if (market.pe < 12) score += 2;
+    let score = 5;
+    if (market.pe < 13) score += 2;
     else if (market.pe > 22) score -= 2;
-    
-    // Κριτήριο 2: Ανάπτυξη ΑΕΠ vs Αποτίμησης (PEG Property)
-    if (market.gdp > 2.5 && market.pe < 15) score += 1.5;
+    if (market.gdp > 2.0 && market.pe < 15) score += 1.5;
     if (market.gdp < 1.0 && market.pe > 15) score -= 1.5;
-    
-    // Κριτήριο 3: Μερισματική Απόδοση
-    if (market.yield > 3.5) score += 0.5;
-    
-    // Περιορισμός ορίων
+    if (market.yield > 3.0) score += 0.5;
     return Math.max(1, Math.min(10, score.toFixed(1)));
 }
 
 function getScoreClass(score) {
-    if (score >= 7.0) return "score-high";
+    if (score >= 6.8) return "score-high";
     if (score >= 4.5) return "score-mid";
     return "score-low";
 }
@@ -110,58 +104,87 @@ function renderDashboard() {
         card.innerHTML = `
             <h3>
                 <span>${market.icon} ${market.name} <small style="font-size:0.8rem; color:var(--text-muted);">(${market.region})</small></span> 
-                <span class="macro-score" title="Macro Score (1-10)">Score: ${score}</span>
+                <span class="macro-score">Score: ${score}</span>
             </h3>
             
             <div class="section-title">Αποτίμηση & Αποδόσεις</div>
-            <div class="metric"><label>Τρέχον P/E:</label> <span>${market.pe.toFixed(2)}</span></div>
-            <div class="metric"><label>Shiller P/E (CAPE):</label> <span>${market.shillerPe.toFixed(2)}</span></div>
-            <div class="metric"><label>Μερισματική Απόδοση:</label> <span style="color:var(--success);">${market.yield.toFixed(2)}%</span></div>
+            <div class="metric"><label>Τρέχον P/E:</label> <span id="pe-${market.ticker}">${market.pe.toFixed(2)}</span></div>
+            <div class="metric"><label>Shiller P/E (CAPE):</label> <span id="cape-${market.ticker}">${market.shillerPe.toFixed(2)}</span></div>
+            <div class="metric"><label>Μερισματική Απόδοση:</label> <span id="yield-${market.ticker}" style="color:var(--success);">${market.yield.toFixed(2)}%</span></div>
             
             <div class="section-title">Μακροοικονομικά Στοιχεία</div>
-            <div class="metric"><label>Ρυθμός ΑΕΠ (2026):</label> <span>+${market.gdp}%</span></div>
-            <div class="metric"><label>Επιτόκιο Κεντρ. Τράπεζας:</label> <span style="color:var(--warning);">${market.rate.toFixed(2)}%</span></div>
+            <div class="metric"><label>Ρυθμός ΑΕΠ:</label> <span id="gdp-${market.ticker}">+${market.gdp}%</span></div>
+            <div class="metric"><label>Επιτόκιο Κεντρ. Τράπεζας:</label> <span id="rate-${market.ticker}" style="color:var(--warning);">${market.rate.toFixed(2)}%</span></div>
             
-            <div class="section-title">Αγορά (ETF: ${market.ticker})</div>
-            <div class="live-status" id="live-${market.ticker}">
-                🔄 Σύνδεση με Live Feed...
-            </div>
+            <div class="section-title">Τιμή ETF (Live σε €)</div>
+            <div class="metric"><label>Τιμή σε Ευρώ:</label> <span id="price-eur-${market.ticker}" class="loading-text">Υπολογισμός...</span></div>
+            <div class="metric"><label>Τιμή σε Δολάριο:</label> <span id="price-usd-${market.ticker}" style="font-size:0.9rem; color:var(--text-muted);">Φόρτωση...</span></div>
         `;
         grid.appendChild(card);
     });
 }
 
-async function fetchLiveMarketData() {
+async function loadAllMacroData() {
+    try {
+        // Live Φόρτωση Ισοτιμίας EUR/USD
+        const fxResponse = await fetch(`https://financialmodelingprep.com{FMP_API_KEY}`);
+        const fxData = await fxResponse.json();
+        if (fxData && fxData[0]) {
+            const eurUsd = parseFloat(fxData[0].bid);
+            usdToEurRate = 1 / eurUsd;
+            document.getElementById('fx-rate').innerText = `💶 Live Ισοτιμία EUR/USD: ${eurUsd.toFixed(4)}`;
+        }
+    } catch (e) {
+        console.log("FX API Fallback");
+    }
+
+    renderDashboard();
+
     macroMarkets.forEach(async (market) => {
-        const statusDiv = document.getElementById(`live-${market.ticker}`);
         try {
-            const response = await fetch(`https://yahoo.com{market.ticker}`);
-            const data = await response.json();
-            const price = data.chart.result[0].meta.regularMarketPrice;
-            const change = data.chart.result[0].meta.regularMarketChangePercent;
+            // 1. Live Τιμή ETF
+            const profileResponse = await fetch(`https://financialmodelingprep.com{market.ticker}?apikey=${FMP_API_KEY}`);
+            const profileData = await profileResponse.json();
             
-            const color = change >= 0 ? 'var(--success)' : 'var(--danger)';
-            const sign = change >= 0 ? '+' : '';
-            
-            statusDiv.innerHTML = `
-                <div class="metric"><label>Live Τιμή:</label> <b>$${price.toFixed(2)}</b></div>
-                <div class="metric"><label>24h Μεταβολή:</label> <span style="color:${color}; font-weight:bold;">${sign}${change.toFixed(2)}%</span></div>
-            `;
-        } catch (e) {
-            // Fallback αν είμαστε εκτός ωρών αγοράς ή υπάρχει API rate-limiting
-            const estPrice = (market.pe * 3.8).toFixed(2);
-            statusDiv.innerHTML = `
-                <div class="metric"><label>Τιμή (Κλείσιμο):</label> <b>$${estPrice}</b></div>
-                <div class="metric"><label>Τάση Αγοράς:</label> <span style="color:var(--text-muted);">Σταθεροποίηση</span></div>
-            `;
+            if (profileData && profileData[0]) {
+                const priceUsd = profileData[0].price;
+                const priceEur = priceUsd * usdToEurRate;
+                
+                document.getElementById(`price-usd-${market.ticker}`).innerText = `$${priceUsd.toFixed(2)}`;
+                document.getElementById(`price-eur-${market.ticker}`).innerHTML = `<b style="color:var(--primary); font-size:1.2rem;">€${priceEur.toFixed(2)}</b>`;
+            }
+
+            // 2. Live P/E
+            const ratioResponse = await fetch(`https://financialmodelingprep.com{market.ticker}?apikey=${FMP_API_KEY}`);
+            const ratioData = await ratioResponse.json();
+            if (ratioData && ratioData[0] && ratioData[0].peRatioTTM) {
+                const livePE = ratioData[0].peRatioTTM;
+                market.pe = livePE;
+                document.getElementById(`pe-${market.ticker}`).innerText = livePE.toFixed(2);
+            }
+
+        } catch (error) {
+            document.getElementById(`price-eur-${market.ticker}`).innerHTML = `<span style="color:var(--danger)">API Limit / Off</span>`;
         }
     });
 }
 
-// Εκκίνηση
-renderDashboard();
-fetchLiveMarketData();
-setInterval(fetchMarketData, 60000); // Ανανέωση ανά λεπτό
+// Έξυπνη διαχείριση: Ανανέωση μόνο αν η καρτέλα είναι ενεργή
+let apiInterval;
+function startDataStream() {
+    loadAllMacroData();
+    apiInterval = setInterval(loadAllMacroData, 300000); // 5 λεπτά [1]
+}
+function stopDataStream() {
+    clearInterval(apiInterval);
+}
+
+document.addEventListener("visibilitychange", () => {
+    if (document.hidden) stopDataStream();
+    else startDataStream();
+});
+
+startDataStream();
 </script>
 
 </body>
