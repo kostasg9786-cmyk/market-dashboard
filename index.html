@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ultimate All-in-One Global Macro Dashboard</title>
+    <title>Ultimate All-in-One Global Macro Dashboard & Auto-Portfolio</title>
     <style>
         :root {
             --bg-color: #0f172a;
@@ -21,6 +21,7 @@
         header h1 { margin: 0; font-size: 2.2rem; }
         header p { margin: 8px 0 0 0; color: #bae6fd; }
         .fx-bar { text-align: center; margin-bottom: 20px; font-size: 1.1rem; color: var(--success); font-weight: bold; background: rgba(74, 222, 128, 0.1); padding: 10px; border-radius: 8px; }
+        .section-heading { font-size: 1.6rem; color: var(--primary); margin: 30px 0 15px 0; border-bottom: 2px solid #334155; padding-bottom: 8px; display: flex; align-items: center; gap: 10px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 20px; }
         .card { background: var(--card-bg); padding: 22px; border-radius: 12px; border-left: 6px solid var(--primary); transition: transform 0.2s; }
         .card:hover { transform: translateY(-4px); }
@@ -37,6 +38,15 @@
         .metric label { color: var(--text-muted); }
         .metric span { font-weight: 600; }
         .price-highlight { font-size: 1.25rem; font-weight: bold; color: var(--primary); }
+        
+        /* Portfolio Styles */
+        .portfolio-box { background: #111827; padding: 25px; border-radius: 12px; border: 1px solid #334155; margin-top: 20px; }
+        .portfolio-summary { display: flex; justify-content: space-around; background: var(--card-bg); padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 1.2rem; }
+        .portfolio-summary div span { font-weight: bold; color: var(--success); }
+        table { width: 100%; border-collapse: collapse; text-align: left; margin-top: 10px; }
+        th, td { padding: 12px; border-bottom: 1px solid #334155; }
+        th { color: var(--primary); font-size: 0.9rem; text-transform: uppercase; }
+        .badge-alloc { background: rgba(56, 189, 248, 0.2); color: var(--primary); padding: 4px 8px; border-radius: 4px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -44,30 +54,51 @@
 <div class="container">
     <header>
         <h1>Global Macro Investing Dashboard 🌐</h1>
-        <p>Πλήρης Ολιστική Εικόνα: Αποτιμήσεις, Πληθωρισμός, Επιτόκια & Live Τιμές σε Ευρώ (€)</p>
+        <p>Σύστημα Αυτόματης Παρακολούθησης Αγορών & Αυτοματοποιημένου Rebalancing</p>
     </header>
 
     <div class="fx-bar" id="fx-rate">💶 Live Ισοτιμία EUR/USD: Φόρτωση...</div>
 
-    <div class="grid" id="macro-grid">
-        <!-- Φόρτωση καρτών αυτόματα -->
+    <div class="section-heading">📊 Παγκόσμιες Μακροοικονομικές Αποτιμήσεις</div>
+    <div class="grid" id="macro-grid"></div>
+
+    <div class="section-heading">🤖 Εικονικό Macro Χαρτοφυλάκιο (Αρχικό Κεφάλαιο: €10,000)</div>
+    <div class="portfolio-box">
+        <div class="portfolio-summary">
+            <div>Τρέχουσα Αξία: <span id="port-value">€10.000,00</span></div>
+            <div>Κατάσταση Rebalancing: <span style="color:var(--primary);">🔄 Ενεργό & Αυτόματο</span></div>
+        </div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Προϊόν (ETF)</th>
+                    <th>Macro Score</th>
+                    <th>Στοχευόμενο Βάρος (%)</th>
+                    <th>Τρέχουσα Live Τιμή (€)</th>
+                    <th>Εικονική Αξία Θέσης</th>
+                </tr>
+            </thead>
+            <tbody id="portfolio-table-body">
+                <!-- Γεμίζει αυτόματα με βάση τα σήματα -->
+            </tbody>
+        </table>
     </div>
 </div>
 
 <script>
 let usdToEurRate = 0.91;
+const INITIAL_CAPITAL = 10000;
 
-// Ολοκληρωμένη παγκόσμια λίστα macro με όλες τις σημαντικές οικονομίες
 const macroMarkets = [
-    { name: "Ελλάδα", ticker: "GREK", pe: 11.60, shillerPe: 12.10, gdp: 1.8, inflation: 2.4, rate: 3.25, yield: 3.80, icon: "🇬🇷", region: "Ευρώπη" },
-    { name: "Φιλιππίνες", ticker: "EPHE", pe: 7.54, shillerPe: 9.20, gdp: 3.3, inflation: 3.1, rate: 5.75, yield: 2.90, icon: "🇵🇭", region: "Αναδυόμενες Ασία" },
-    { name: "Ηνωμένες Πολιτείες (ΗΠΑ)", ticker: "SPY", pe: 23.85, shillerPe: 31.40, gdp: 2.3, inflation: 2.5, rate: 4.50, yield: 1.35, icon: "🇺🇸", region: "Βόρεια Αμερική" },
-    { name: "Κίνα", ticker: "MCHI", pe: 10.80, shillerPe: 11.30, gdp: 4.1, inflation: 0.6, rate: 3.10, yield: 2.40, icon: "🇨🇳", region: "Αναδυόμενες Ασία" },
-    { name: "Ινδία", ticker: "INDA", pe: 25.40, shillerPe: 28.90, gdp: 6.5, inflation: 4.8, rate: 6.50, yield: 1.20, icon: "🇮🇳", region: "Αναδυόμενες Ασία" },
-    { name: "Γερμανία", ticker: "EWG", pe: 17.47, shillerPe: 16.80, gdp: 0.7, inflation: 2.0, rate: 3.25, yield: 2.80, icon: "🇩🇪", region: "Ευρώπη" },
-    { name: "Ηνωμένο Βασίλειο", ticker: "EWU", pe: 16.37, shillerPe: 15.20, gdp: 1.0, inflation: 2.2, rate: 4.75, yield: 3.95, icon: "🇬🇧", region: "Ευρώπη" },
-    { name: "Ιαπωνία", ticker: "EWJ", pe: 18.68, shillerPe: 22.10, gdp: 0.6, inflation: 2.1, rate: 0.25, yield: 1.80, icon: "🇯🇵", region: "Αναπτυγμένες Ασία" },
-    { name: "Βραζιλία", ticker: "EWZ", pe: 8.20, shillerPe: 9.50, gdp: 2.1, inflation: 4.2, rate: 10.50, yield: 6.10, icon: "🇧🇷", region: "Λατινική Αμερική" }
+    { name: "Ελλάδα", ticker: "GREK", pe: 11.60, shillerPe: 12.10, gdp: 1.8, inflation: 2.4, rate: 3.25, yield: 3.80, icon: "🇬🇷", region: "Ευρώπη", livePriceEur: 0 },
+    { name: "Φιλιππίνες", ticker: "EPHE", pe: 7.54, shillerPe: 9.20, gdp: 3.3, inflation: 3.1, rate: 5.75, yield: 2.90, icon: "🇵🇭", region: "Αναδυόμενες Ασία", livePriceEur: 0 },
+    { name: "Ηνωμένες Πολιτείες (ΗΠΑ)", ticker: "SPY", pe: 23.85, shillerPe: 31.40, gdp: 2.3, inflation: 2.5, rate: 4.50, yield: 1.35, icon: "🇺🇸", region: "Βόρεια Αμερική", livePriceEur: 0 },
+    { name: "Κίνα", ticker: "MCHI", pe: 10.80, shillerPe: 11.30, gdp: 4.1, inflation: 0.6, rate: 3.10, yield: 2.40, icon: "🇨🇳", region: "Αναδυόμενες Ασία", livePriceEur: 0 },
+    { name: "Ινδία", ticker: "INDA", pe: 25.40, shillerPe: 28.90, gdp: 6.5, inflation: 4.8, rate: 6.50, yield: 1.20, icon: "🇮🇳", region: "Αναδυόμενες Ασία", livePriceEur: 0 },
+    { name: "Γερμανία", ticker: "EWG", pe: 17.47, shillerPe: 16.80, gdp: 0.7, inflation: 2.0, rate: 3.25, yield: 2.80, icon: "🇩🇪", region: "Ευρώπη", livePriceEur: 0 },
+    { name: "Ηνωμένο Βασίλειο", ticker: "EWU", pe: 16.37, shillerPe: 15.20, gdp: 1.0, inflation: 2.2, rate: 4.75, yield: 3.95, icon: "🇬🇧", region: "Ευρώπη", livePriceEur: 0 },
+    { name: "Ιαπωνία", ticker: "EWJ", pe: 18.68, shillerPe: 22.10, gdp: 0.6, inflation: 2.1, rate: 0.25, yield: 1.80, icon: "🇯🇵", region: "Αναπτυγμένες Ασία", livePriceEur: 0 },
+    { name: "Βραζιλία", ticker: "EWZ", pe: 8.20, shillerPe: 9.50, gdp: 2.1, inflation: 4.2, rate: 10.50, yield: 6.10, icon: "🇧🇷", region: "Λατινική Αμερική", livePriceEur: 0 }
 ];
 
 function calculateMacroScore(market) {
@@ -77,7 +108,7 @@ function calculateMacroScore(market) {
     if (market.gdp > 2.5 && market.pe < 15) score += 1.5;
     if (market.gdp < 1.0 && market.pe > 15) score -= 1.5;
     if (market.yield > 3.5) score += 0.5;
-    if (market.inflation > 4.5) score -= 0.5; // Ποινή υψηλού πληθωρισμού
+    if (market.inflation > 4.5) score -= 0.5;
     return Math.max(1, Math.min(10, score.toFixed(1)));
 }
 
@@ -85,6 +116,59 @@ function getScoreClass(score) {
     if (score >= 6.8) return "score-high";
     if (score >= 4.5) return "score-mid";
     return "score-low";
+}
+
+// Έξυπνος Αλγόριθμος Rebalancing (Asset Allocation)
+function buildDynamicPortfolio() {
+    const tableBody = document.getElementById('portfolio-table-body');
+    tableBody.innerHTML = '';
+    
+    let totalAssignedWeight = 0;
+    let portfolioData = [];
+
+    // Βήμα 1: Υπολογισμός βαρών με βάση το Macro Score
+    macroMarkets.forEach(market => {
+        const score = parseFloat(calculateMacroScore(market));
+        let weight = 0;
+        
+        if (score >= 7.5) weight = 25;      // Επιθετικό Value Play
+        else if (score >= 5.5) weight = 10; // Συντηρητικό κράτημα
+        
+        if (weight > 0) {
+            portfolioData.push({ market, score, weight });
+            totalAssignedWeight += weight;
+        }
+    });
+
+    // Βήμα 2: Εξομάλυνση (Normalize) ώστε το σύνολο να είναι ακριβώς 100% αν ξεπεραστεί
+    if (totalAssignedWeight > 100) {
+        portfolioData.forEach(item => {
+            item.weight = (item.weight / totalAssignedWeight) * 100;
+        });
+    }
+
+    // Βήμα 3: Σχεδίαση Πίνακα Χαρτοφυλακίου
+    let currentTotalPortfolioValue = 0;
+
+    portfolioData.forEach(item => {
+        const targetValue = (INITIAL_CAPITAL * (item.weight / 100));
+        const priceDisplay = item.market.livePriceEur > 0 ? `€${item.market.livePriceEur.toFixed(2)}` : "Υπολογισμός (Αγορά Κλειστή)";
+        const positionValueDisplay = item.market.livePriceEur > 0 ? `€${targetValue.toFixed(2)}` : `€${targetValue.toFixed(2)} (Αναμονή)`;
+        
+        currentTotalPortfolioValue += targetValue;
+
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><b>${item.market.icon} ${item.market.name}</b> (${item.market.ticker})</td>
+            <td><span class="macro-score">${item.score}</span></td>
+            <td><span class="badge-alloc">${item.weight.toFixed(1)}%</span></td>
+            <td>${priceDisplay}</td>
+            <td>${positionValueDisplay}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+
+    document.getElementById('port-value').innerText = `€${INITIAL_CAPITAL.toLocaleString('el-GR', {minimumFractionDigits: 2})}`;
 }
 
 function renderDashboard() {
@@ -102,56 +186,4 @@ function renderDashboard() {
                 <span>${market.icon} ${market.name} <small style="font-size:0.75rem; color:var(--text-muted);">(${market.region})</small></span> 
                 <span class="macro-score">Score: ${score}</span>
             </h3>
-            
             <div class="section-title">Αποτίμηση & Αποδόσεις</div>
-            <div class="metric"><label>Τρέχον P/E:</label> <span>${market.pe.toFixed(2)}</span></div>
-            <div class="metric"><label>Shiller P/E (CAPE):</label> <span>${market.shillerPe.toFixed(2)}</span></div>
-            <div class="metric"><label>Μερισματική Απόδοση:</label> <span style="color:var(--success);">${market.yield.toFixed(2)}%</span></div>
-            
-            <div class="section-title">Μακροοικονομικά Στοιχεία</div>
-            <div class="metric"><label>Ρυθμός ΑΕΠ (2026):</label> <span>+${market.gdp}%</span></div>
-            <div class="metric"><label>Πληθωρισμός:</label> <span style="color:var(--danger);">${market.inflation}%</span></div>
-            <div class="metric"><label>Επιτόκιο Κεντρ. Τράπεζας:</label> <span style="color:var(--warning);">${market.rate.toFixed(2)}%</span></div>
-            
-            <div class="section-title">Τιμή ETF (Live σε €)</div>
-            <div class="metric"><label>Τιμή σε Ευρώ:</label> <span id="price-eur-${market.ticker}" class="price-highlight">Φόρτωση...</span></div>
-            <div class="metric"><label>Τιμή σε Δολάριο:</label> <span id="price-usd-${market.ticker}" style="font-size:0.9rem; color:var(--text-muted);">Φόρτωση...</span></div>
-        `;
-        grid.appendChild(card);
-    });
-}
-
-async function loadAllMacroData() {
-    try {
-        // Live Φόρτωση Ισοτιμίας από ελεύθερο API χωρίς Key
-        const fxRes = await fetch('https://er-api.com');
-        const fxData = await fxRes.json();
-        usdToEurRate = fxData.rates.EUR;
-        const eurUsd = 1 / usdToEurRate;
-        document.getElementById('fx-rate').innerText = `💶 Live Ισοτιμία EUR/USD: ${eurUsd.toFixed(4)}`;
-    } catch (e) { console.log("FX API Fallback"); }
-
-    renderDashboard();
-
-    // Live Φόρτωση τιμών ETFs από ελεύθερο proxy χωρίς κανένα περιορισμό
-    macroMarkets.forEach(async (market) => {
-        try {
-            const res = await fetch(`https://yahoo.com{market.ticker}`);
-            const data = await res.json();
-            const priceUsd = data.chart.result[0].meta.regularMarketPrice;
-            const priceEur = priceUsd * usdToEurRate;
-            
-            document.getElementById(`price-usd-${market.ticker}`).innerText = `$${priceUsd.toFixed(2)}`;
-            document.getElementById(`price-eur-${market.ticker}`).innerHTML = `€${priceEur.toFixed(2)}`;
-        } catch (error) {
-            document.getElementById(`price-eur-${market.ticker}`).innerHTML = `<span style="color:var(--warning)">Κλειστή Αγορά</span>`;
-        }
-    });
-}
-
-loadAllMacroData();
-setInterval(loadAllMacroData, 60000); // Ανανέωση ανά λεπτό
-</script>
-
-</body>
-</html>
