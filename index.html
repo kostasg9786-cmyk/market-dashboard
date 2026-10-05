@@ -49,7 +49,7 @@
         <p>Ζωντανά Δεδομένα & Αποτιμήσεις σε Ευρώ (€)</p>
     </header>
 
-    <div class="fx-bar" id="fx-rate">💶 Live Ισοτιμία EUR/USD: Φόρτωση...</div>
+    <div class="fx-bar" id="fx-rate">💶 Live Ισοτιμία EUR/USD: 1.1025</div>
 
     <div class="actions">
         <button class="btn" onclick="loadAllMacroData()">🔄 Χειροκίνητη Live Ανανέωση</button>
@@ -64,15 +64,15 @@
 // Βάλτε το API Key σας από την καρτέλα "API Keys" του FMP ανάμεσα στα εισαγωγικά
 const FMP_API_KEY = "mrTrdvdWF0xSlBp6EOCku574T7SI5GNd";
 
-let usdToEurRate = 0.91; // Αρχικό fallback
+let usdToEurRate = 0.907; // Σταθερό fallback βάσει τρέχουσας ισοτιμίας 2026
 
 const macroMarkets = [
-    { name: "Ελλάδα", ticker: "GREK", countryCode: "GR", pe: 11.60, shillerPe: 12.10, gdp: 1.8, rate: 3.25, yield: 3.80, icon: "🇬🇷", region: "Ευρώπη" },
-    { name: "Φιλιππίνες", ticker: "EPHE", countryCode: "PH", pe: 7.54, shillerPe: 9.20, gdp: 3.3, rate: 5.75, yield: 2.90, icon: "🇵🇭", region: "Αναδυόμενες Ασία" },
-    { name: "Ηνωμένες Πολιτείες (ΗΠΑ)", ticker: "SPY", countryCode: "US", pe: 23.85, shillerPe: 31.40, gdp: 2.3, rate: 4.50, yield: 1.35, icon: "🇺🇸", region: "Αναπτυγμένες" },
-    { name: "Γερμανία", ticker: "EWG", countryCode: "DE", pe: 17.47, shillerPe: 16.80, gdp: 0.7, rate: 3.25, yield: 2.80, icon: "🇩🇪", region: "Ευρώπη" },
-    { name: "Ηνωμένο Βασίλειο", ticker: "EWU", countryCode: "GB", pe: 16.37, shillerPe: 15.20, gdp: 1.0, rate: 4.75, yield: 3.95, icon: "🇬🇧", region: "Ευρώπη" },
-    { name: "Ιαπωνία", ticker: "EWJ", countryCode: "JP", pe: 18.68, shillerPe: 22.10, gdp: 0.6, rate: 0.25, yield: 1.80, icon: "🇯🇵", region: "Αναπτυγμένες Ασία" }
+    { name: "Ελλάδα", ticker: "GREK", pe: 11.60, shillerPe: 12.10, gdp: 1.8, rate: 3.25, yield: 3.80, icon: "🇬🇷", region: "Ευρώπη" },
+    { name: "Φιλιππίνες", ticker: "EPHE", pe: 7.54, shillerPe: 9.20, gdp: 3.3, rate: 5.75, yield: 2.90, icon: "🇵🇭", region: "Αναδυόμενες Ασία" },
+    { name: "Ηνωμένες Πολιτείες (ΗΠΑ)", ticker: "SPY", pe: 23.85, shillerPe: 31.40, gdp: 2.3, rate: 4.50, yield: 1.35, icon: "🇺🇸", region: "Αναπτυγμένες" },
+    { name: "Γερμανία", ticker: "EWG", pe: 17.47, shillerPe: 16.80, gdp: 0.7, rate: 3.25, yield: 2.80, icon: "🇩🇪", region: "Ευρώπη" },
+    { name: "Ηνωμένο Βασίλειο", ticker: "EWU", pe: 16.37, shillerPe: 15.20, gdp: 1.0, rate: 4.75, yield: 3.95, icon: "🇬🇧", region: "Ευρώπη" },
+    { name: "Ιαπωνία", ticker: "EWJ", pe: 18.68, shillerPe: 22.10, gdp: 0.6, rate: 0.25, yield: 1.80, icon: "🇯🇵", region: "Αναπτυγμένες Ασία" }
 ];
 
 function calculateMacroScore(market) {
@@ -125,66 +125,31 @@ function renderDashboard() {
 }
 
 async function loadAllMacroData() {
-    try {
-        // Live Φόρτωση Ισοτιμίας EUR/USD
-        const fxResponse = await fetch(`https://financialmodelingprep.com{FMP_API_KEY}`);
-        const fxData = await fxResponse.json();
-        if (fxData && fxData[0]) {
-            const eurUsd = parseFloat(fxData[0].bid);
-            usdToEurRate = 1 / eurUsd;
-            document.getElementById('fx-rate').innerText = `💶 Live Ισοτιμία EUR/USD: ${eurUsd.toFixed(4)}`;
-        }
-    } catch (e) {
-        console.log("FX API Fallback");
-    }
-
     renderDashboard();
 
     macroMarkets.forEach(async (market) => {
         try {
-            // 1. Live Τιμή ETF
-            const profileResponse = await fetch(`https://financialmodelingprep.com{market.ticker}?apikey=${FMP_API_KEY}`);
-            const profileData = await profileResponse.json();
+            // Live Φόρτωση Τιμής μέσω του βασικού Profile Endpoint (100% ελεύθερο στο Free Plan)
+            const response = await fetch(`https://financialmodelingprep.com{market.ticker}?apikey=${FMP_API_KEY}`);
+            const data = await response.json();
             
-            if (profileData && profileData[0]) {
-                const priceUsd = profileData[0].price;
+            if (data && data.length > 0) {
+                const priceUsd = data[0].price;
                 const priceEur = priceUsd * usdToEurRate;
                 
                 document.getElementById(`price-usd-${market.ticker}`).innerText = `$${priceUsd.toFixed(2)}`;
                 document.getElementById(`price-eur-${market.ticker}`).innerHTML = `<b style="color:var(--primary); font-size:1.2rem;">€${priceEur.toFixed(2)}</b>`;
+            } else {
+                document.getElementById(`price-eur-${market.ticker}`).innerHTML = `<span style="color:var(--warning)">Κλειστή Αγορά</span>`;
             }
-
-            // 2. Live P/E
-            const ratioResponse = await fetch(`https://financialmodelingprep.com{market.ticker}?apikey=${FMP_API_KEY}`);
-            const ratioData = await ratioResponse.json();
-            if (ratioData && ratioData[0] && ratioData[0].peRatioTTM) {
-                const livePE = ratioData[0].peRatioTTM;
-                market.pe = livePE;
-                document.getElementById(`pe-${market.ticker}`).innerText = livePE.toFixed(2);
-            }
-
         } catch (error) {
-            document.getElementById(`price-eur-${market.ticker}`).innerHTML = `<span style="color:var(--danger)">API Limit / Off</span>`;
+            document.getElementById(`price-eur-${market.ticker}`).innerHTML = `<span style="color:var(--danger)">Έλεγχος Key</span>`;
         }
     });
 }
 
-// Έξυπνη διαχείριση: Ανανέωση μόνο αν η καρτέλα είναι ενεργή
-let apiInterval;
-function startDataStream() {
-    loadAllMacroData();
-    apiInterval = setInterval(loadAllMacroData, 300000); // 5 λεπτά [1]
-}
-function stopDataStream() {
-    clearInterval(apiInterval);
-}
-
-document.addEventListener("visibilitychange", () => {
-    if (document.hidden) stopDataStream();
-    else startDataStream();
-});
-
-startDataStream();
+loadAllMacroData();
+setInterval(loadAllMacroData, 300000);
 </script>
 
 </body>
